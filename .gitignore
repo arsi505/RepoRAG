@@ -1,0 +1,64 @@
+# Python bytecode and interpreter caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test, coverage, type-checker, and linter caches
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.tox/
+.nox/
+
+# Virtual environments and local environment variables
+.venv/
+venv/
+env/
+ENV/
+.env
+.env.*
+!.env.example
+
+# Python build and packaging artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+wheels/
+pip-wheel-metadata/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Local caches and downloaded model artifacts
+.cache/
+cache/
+model_cache/
+models/downloaded/
+.huggingface/
+.sentence_transformers/
+
+# Temporary files and benchmark scratch output
+tmp/
+temp/
+*.tmp
+*.temp
+results/tmp/
+results/temporary/
+results/raw_runs/
+
+# Logs
+*.log
+
+# Keep evaluation datasets and final research evidence version controlled.
+# Do not add broad ignores for data/, evaluation/, or final CSV/JSON results.
