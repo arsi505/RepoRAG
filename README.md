@@ -26,6 +26,27 @@ RepoRAG is a repository-aware retrieval-augmented generation research project fo
 
 ## Status
 
-**Day 1 — Research design frozen**
+**Day 2 — Repository ingestion implemented**
 
-Implementation begins on Day 2.
+The research design remains frozen. Day 2 adds repository discovery and reproducible JSON manifests only; retrieval implementation is not included.
+
+## Day 2 / Development
+
+RepoRAG ingestion accepts an existing local directory or a public GitHub repository URL. It records file and Git snapshot metadata in `data/manifests/` without storing source contents.
+
+From PowerShell at the repository root, expose the `src` package and run the CLI:
+
+```powershell
+$env:PYTHONPATH = "$PWD\src"
+python -m reporag.ingestion.cli "D:\path\to\repository"
+python -m reporag.ingestion.cli "https://github.com/owner/repository.git"
+```
+
+Run the dependency-free automated tests with:
+
+```powershell
+$env:PYTHONPATH = "$PWD\src"
+python -m unittest discover -s tests -v
+```
+
+See [Repository Ingestion](docs/INGESTION.md) for filtering rules, metadata, reproducibility behavior, and current limitations.

@@ -13,6 +13,7 @@ htmlcov/
 .pytype/
 .tox/
 .nox/
+.test_tmp/
 
 # Virtual environments and local environment variables
 .venv/
@@ -47,6 +48,11 @@ model_cache/
 models/downloaded/
 .huggingface/
 .sentence_transformers/
+data/repository_cache/
+
+# Local ingestion manifests contain machine paths and runtime timestamps.
+data/manifests/*.json
+!data/manifests/.gitkeep
 
 # Temporary files and benchmark scratch output
 tmp/
