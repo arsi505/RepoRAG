@@ -19,3 +19,5 @@ class SearchResult:
     start_line: int
     end_line: int
     content: str
+    method: str = "vector"
+    score_name: str = "cosine_similarity"

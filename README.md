@@ -26,9 +26,9 @@ RepoRAG is a repository-aware retrieval-augmented generation research project fo
 
 ## Status
 
-**Day 4 — Vector-only retrieval implemented**
+**Day 5 — Vector and BM25 baselines implemented**
 
-The research design and Day 3 chunk dataset remain frozen. Method A now provides local code embeddings, transparent persistent indexes, and exact cosine-similarity search. BM25, hybrid retrieval, reranking, LLM answer generation, and evaluation remain future work.
+The research design and Day 3 chunk dataset remain frozen. Method A provides exact cosine vector search and Method B provides deterministic BM25 lexical search over the same chunks. Hybrid retrieval, reranking, LLM answer generation, and evaluation remain future work.
 
 ## Day 2 / Development
 
@@ -85,3 +85,15 @@ $env:PYTHONPATH = "$PWD\src"
 Add `--show-content` to the search command to print exact chunk source. Generated model and index artifacts remain local and gitignored. See [Vector Retrieval](docs/VECTOR_RETRIEVAL.md) for the frozen model revision, input template, normalization, persistence, stale-index validation, and limitations.
 
 The model was trained at a sequence length of 512 and uses its documented ALiBi-based support for an explicit 8,192-token inference maximum. Index metadata reports pre-truncation token lengths and any documents exceeding that limit.
+
+## Day 5 / BM25 Retrieval
+
+Build and search the independent lexical index:
+
+```powershell
+$env:PYTHONPATH = "$PWD\src"
+.venv\Scripts\python.exe -m reporag.lexical.cli build "D:\path\to\repository"
+.venv\Scripts\python.exe -m reporag.lexical.cli search data\bm25\repository "Where is authentication enforced?" --top-k 5
+```
+
+Add `--show-content` to print exact source. The frozen BM25 configuration uses `k1=1.5`, `b=0.75`, code-aware identifier/path tokenization, exhaustive scoring, and positive-score-only results. See [BM25 Lexical Retrieval](docs/BM25_RETRIEVAL.md).
