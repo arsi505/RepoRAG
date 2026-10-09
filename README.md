@@ -153,3 +153,14 @@ $env:PYTHONPATH = "$PWD\src"
 ```
 
 DeepSeek uses the existing pinned OpenAI SDK against `https://api.deepseek.com`, with `DEEPSEEK_API_KEY` and `deepseek-flash`. Gemini remains available with `--provider gemini`, the official pinned `google-genai` SDK, `GEMINI_API_KEY`, and `gemini-3.8-flash`. OpenAI remains available with `--provider openai`, `OPENAI_API_KEY`, and the pinned OpenAI model snapshot. Local `.env` loading never overrides an explicitly set environment variable. No provider enables search, browsing, code execution, function calling, or other external tools. Available retrieval methods remain `vector`, `bm25`, `hybrid`, and `reranked`; Hybrid is only the practical interactive default, not a research conclusion. See [Repository Question Answering](docs/REPOSITORY_QA.md).
+
+## API
+
+The local FastAPI adapter exposes `GET /health` and `POST /api/qa` over existing pre-indexed repositories. It does not provide indexing or change retrieval behavior. Run it on loopback with:
+
+```powershell
+$env:PYTHONPATH = "$PWD\src"
+.venv\Scripts\python.exe -m uvicorn reporag.api.app:app --reload --host 127.0.0.1 --port 8000
+```
+
+See [RepoRAG Local API](docs/API.md) for request and response fields, supported options, pre-indexing requirements, and safe error behavior.
