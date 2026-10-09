@@ -26,9 +26,9 @@ RepoRAG is a repository-aware retrieval-augmented generation research project fo
 
 ## Status
 
-**Day 5 — Vector and BM25 baselines implemented**
+**Day 6 — Hybrid RRF retrieval implemented**
 
-The research design and Day 3 chunk dataset remain frozen. Method A provides exact cosine vector search and Method B provides deterministic BM25 lexical search over the same chunks. Hybrid retrieval, reranking, LLM answer generation, and evaluation remain future work.
+The research design and Day 3 chunk dataset remain frozen. Method A provides exact cosine vector search, Method B provides deterministic BM25 lexical search, and Method C fuses their complete rankings with RRF (`reporag-rrf-v1`, `k=60`). Reranking, LLM answer generation, and evaluation remain future work.
 
 ## Day 2 / Development
 
@@ -97,3 +97,18 @@ $env:PYTHONPATH = "$PWD\src"
 ```
 
 Add `--show-content` to print exact source. The frozen BM25 configuration uses `k1=1.5`, `b=0.75`, code-aware identifier/path tokenization, exhaustive scoring, and positive-score-only results. See [BM25 Lexical Retrieval](docs/BM25_RETRIEVAL.md).
+
+## Day 6 / Hybrid Retrieval
+
+Search compatible existing Vector and BM25 indexes with full-ranking Reciprocal Rank Fusion:
+
+```powershell
+$env:PYTHONPATH = "$PWD\src"
+.venv\Scripts\python.exe -m reporag.retrieval.hybrid_cli `
+  data\embeddings\realtimecollab `
+  data\bm25\realtimecollab `
+  "Where is a realtime client connection handled?" `
+  --top-k 5 --verbose
+```
+
+The same query is passed unchanged to both retrievers. RRF fuses the complete Vector ranking and complete positive-score BM25 ranking before final top-k selection; raw scores are shown for inspection but never combined. Generated hybrid metadata remains local under `data/hybrid/`. See [Hybrid Retrieval](docs/HYBRID_RETRIEVAL.md).

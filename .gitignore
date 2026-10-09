@@ -55,6 +55,8 @@ data/embeddings/*
 !data/embeddings/.gitkeep
 data/bm25/*
 !data/bm25/.gitkeep
+data/hybrid/*
+!data/hybrid/.gitkeep
 
 # Local ingestion manifests contain machine paths and runtime timestamps.
 data/manifests/*.json
