@@ -1,7 +1,7 @@
 [project]
 name = "reporag"
-version = "0.1.0"
-description = "Repository-aware retrieval research toolkit"
+version = "1.0.0"
+description = "Repository-aware AI code assistant with grounded source evidence"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

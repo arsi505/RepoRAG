@@ -1,6 +1,6 @@
 # RepoRAG Local API
 
-The FastAPI layer exposes RepoRAG's existing single-question repository Q&A service to a future local frontend. It validates HTTP input, loads compatible prebuilt runtime artifacts, calls the existing Q&A service, and serializes its result. It does not implement retrieval, generation, ingestion, or index building.
+The FastAPI layer exposes RepoRAG's existing single-question repository Q&A service to the local Next.js frontend. It validates HTTP input, loads compatible prebuilt runtime artifacts, calls the existing Q&A service, and serializes its result. It does not implement retrieval, generation, ingestion, or index building.
 
 ## Local use
 

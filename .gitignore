@@ -71,6 +71,7 @@ data/chunks/*.jsonl
 # Temporary files and benchmark scratch output
 tmp/
 temp/
+.tmp-doc-screenshot-profile/
 *.tmp
 *.temp
 results/tmp/
