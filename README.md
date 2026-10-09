@@ -26,9 +26,9 @@ RepoRAG is a repository-aware retrieval-augmented generation research project fo
 
 ## Status
 
-**Day 6 — Hybrid RRF retrieval implemented**
+**Day 7 — Hybrid RRF plus cross-encoder reranking implemented**
 
-The research design and Day 3 chunk dataset remain frozen. Method A provides exact cosine vector search, Method B provides deterministic BM25 lexical search, and Method C fuses their complete rankings with RRF (`reporag-rrf-v1`, `k=60`). Reranking, LLM answer generation, and evaluation remain future work.
+The research design and Day 3 chunk dataset remain frozen. Method A provides exact cosine vector search, Method B provides deterministic BM25 lexical search, Method C fuses their complete rankings with RRF, and Method D reranks the fixed Hybrid top 50 using the pinned BGE cross-encoder. LLM answer generation and evaluation remain future work.
 
 ## Day 2 / Development
 
@@ -112,3 +112,18 @@ $env:PYTHONPATH = "$PWD\src"
 ```
 
 The same query is passed unchanged to both retrievers. RRF fuses the complete Vector ranking and complete positive-score BM25 ranking before final top-k selection; raw scores are shown for inspection but never combined. Generated hybrid metadata remains local under `data/hybrid/`. See [Hybrid Retrieval](docs/HYBRID_RETRIEVAL.md).
+
+## Day 7 / Cross-Encoder Reranking
+
+Rerank the frozen Method C top 50 with the pinned `BAAI/bge-reranker-v2-m3` model:
+
+```powershell
+$env:PYTHONPATH = "$PWD\src"
+.venv\Scripts\python.exe -m reporag.reranking.cli `
+  data\embeddings\realtimecollab `
+  data\bm25\realtimecollab `
+  "Where is a realtime client connection handled?" `
+  --top-k 5 --verbose
+```
+
+The first pinned-revision download may be enabled explicitly with `--allow-download`. Method D uses raw cross-encoder logits, `candidate_k=50`, `max_length=1024`, deterministic batching, and full retrieval provenance. See [Cross-Encoder Reranking](docs/RERANKING.md).
