@@ -1,0 +1,11 @@
+[tree-sitter-language-pack]
+# tree-sitter-language-pack has no separate canonical "jsx" grammar.
+# RepoRAG parses .jsx files with the canonical "javascript" grammar.
+languages = [
+    "python",
+    "typescript",
+    "tsx",
+    "javascript",
+    "c",
+    "cpp",
+]

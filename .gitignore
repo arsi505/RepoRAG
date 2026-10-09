@@ -49,10 +49,15 @@ models/downloaded/
 .huggingface/
 .sentence_transformers/
 data/repository_cache/
+data/tree_sitter_cache/
 
 # Local ingestion manifests contain machine paths and runtime timestamps.
 data/manifests/*.json
 !data/manifests/.gitkeep
+
+# Runtime chunks may contain local repository source and are regenerated.
+data/chunks/*.jsonl
+!data/chunks/.gitkeep
 
 # Temporary files and benchmark scratch output
 tmp/

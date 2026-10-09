@@ -26,9 +26,9 @@ RepoRAG is a repository-aware retrieval-augmented generation research project fo
 
 ## Status
 
-**Day 2 — Repository ingestion implemented**
+**Day 3 — Code-aware parsing and chunking implemented**
 
-The research design remains frozen. Day 2 adds repository discovery and reproducible JSON manifests only; retrieval implementation is not included.
+The research design remains frozen. Repository ingestion and deterministic code-aware chunk generation are implemented; retrieval implementation is not included.
 
 ## Day 2 / Development
 
@@ -50,3 +50,22 @@ python -m unittest discover -s tests -v
 ```
 
 See [Repository Ingestion](docs/INGESTION.md) for filtering rules, metadata, reproducibility behavior, and current limitations.
+
+## Day 3 / Development
+
+Install the project and its pinned Tree-sitter dependency from `pyproject.toml`:
+
+```powershell
+python -m pip install -e .
+```
+
+With the established source-layout workflow, generate chunks for a local or public GitHub repository using:
+
+```powershell
+$env:PYTHONPATH = "$PWD\src"
+python -m reporag.chunking.cli "D:\path\to\repository"
+```
+
+The first use of a structural language may download its grammar into the ignored `data/tree_sitter_cache/` directory. Runtime chunks are written to `data/chunks/<repository>.jsonl`.
+
+See [Code-Aware Chunking](docs/CHUNKING.md) for supported languages, metadata, fallback behavior, stable IDs, and limitations.
