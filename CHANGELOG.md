@@ -1,6 +1,6 @@
 # Changelog
 
-## \[1.0.0] - 2026-10-10
+## \## \[1.0.0] - 2026-10-10
 
 * Added local and public GitHub repository ingestion with reproducible metadata.
 * Added structural code-aware chunking with deterministic fallback coverage.
