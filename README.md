@@ -26,7 +26,7 @@ RepoRAG is a repository-aware retrieval-augmented generation research project fo
 
 ## Status
 
-**Day 8 — Grounded repository Q&A implemented**
+**Practical Q&A — DeepSeek, Gemini, and OpenAI generation providers implemented**
 
 The research design and Day 3 chunk dataset remain frozen. Methods A–D remain retrieval-only research baselines. Day 8 adds a separate single-turn demonstration layer that supplies retrieved repository evidence to a generator and validates `[S1]`-style citations. Empirical evaluation remains future work.
 
@@ -141,4 +141,15 @@ $env:PYTHONPATH = "$PWD\src"
   --method hybrid --context-k 5 --dry-run
 ```
 
-For live generation, set `OPENAI_API_KEY` in the environment and omit `--dry-run`. Available methods are `vector`, `bm25`, `hybrid`, and `reranked`; Hybrid is only the practical interactive default, not a research conclusion. The provider uses the pinned `gpt-5.4-mini-2026-03-17` snapshot without web search or external tools. See [Repository Question Answering](docs/REPOSITORY_QA.md).
+For live generation, copy `.env.example` to the gitignored `.env`, set the key for the selected provider, and omit `--dry-run`. Never commit API keys. DeepSeek is the current recommended default:
+
+```powershell
+$env:PYTHONPATH = "$PWD\src"
+.venv\Scripts\python.exe -m reporag.qa.cli `
+  data\embeddings\realtimecollab `
+  data\bm25\realtimecollab `
+  "Where is a realtime client connection handled?" `
+  --provider deepseek --method hybrid --context-k 5
+```
+
+DeepSeek uses the existing pinned OpenAI SDK against `https://api.deepseek.com`, with `DEEPSEEK_API_KEY` and `deepseek-flash`. Gemini remains available with `--provider gemini`, the official pinned `google-genai` SDK, `GEMINI_API_KEY`, and `gemini-3.8-flash`. OpenAI remains available with `--provider openai`, `OPENAI_API_KEY`, and the pinned OpenAI model snapshot. Local `.env` loading never overrides an explicitly set environment variable. No provider enables search, browsing, code execution, function calling, or other external tools. Available retrieval methods remain `vector`, `bm25`, `hybrid`, and `reranked`; Hybrid is only the practical interactive default, not a research conclusion. See [Repository Question Answering](docs/REPOSITORY_QA.md).

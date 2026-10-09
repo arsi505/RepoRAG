@@ -9,7 +9,14 @@ from reporag.generation.fake import FakeGenerator
 from reporag.generation.openai_provider import OpenAIResponsesProvider
 from reporag.generation.protocol import GenerationError
 from reporag.qa.citations import cited_evidence, parse_source_ids, validate_citations
-from reporag.qa.config import DEFAULT_QA_CONFIG, QAConfig, qa_fingerprint
+from reporag.qa.config import (
+    DEFAULT_QA_CONFIG,
+    DEEPSEEK_MODEL,
+    GEMINI_MODEL,
+    OPENAI_MODEL,
+    QAConfig,
+    qa_fingerprint,
+)
 from reporag.qa.context import build_evidence, format_context
 from reporag.qa.prompts import GROUNDING_INSTRUCTIONS, PROMPT_VERSION, build_user_input
 from reporag.qa.service import (
@@ -235,8 +242,8 @@ class QAConfigFingerprintTests(unittest.TestCase):
         self.assertEqual(DEFAULT_QA_CONFIG.qa_version, "reporag-qa-v1")
         self.assertEqual(DEFAULT_QA_CONFIG.default_retrieval_method, "hybrid")
         self.assertEqual(DEFAULT_QA_CONFIG.default_context_k, 5)
-        self.assertEqual(DEFAULT_QA_CONFIG.generation_provider, "openai")
-        self.assertEqual(DEFAULT_QA_CONFIG.generation_model, "gpt-5.4-mini-2026-03-17")
+        self.assertEqual(DEFAULT_QA_CONFIG.generation_provider, "deepseek")
+        self.assertEqual(DEFAULT_QA_CONFIG.generation_model, DEEPSEEK_MODEL)
         self.assertEqual(DEFAULT_QA_CONFIG.max_output_tokens, 1200)
 
     def test_fingerprint_is_stable_and_configuration_sensitive(self) -> None:
@@ -257,6 +264,44 @@ class QAConfigFingerprintTests(unittest.TestCase):
         )
         for config in configs:
             self.assertNotEqual(original, qa_fingerprint(**base, config=config))
+
+    def test_fingerprint_changes_between_gemini_and_openai(self) -> None:
+        base = dict(
+            retrieval_method="hybrid",
+            retrieval_fingerprint="retrieval",
+            context_k=5,
+        )
+        gemini = qa_fingerprint(
+            **base,
+            generation_provider="gemini",
+            generation_model=GEMINI_MODEL,
+        )
+        openai = qa_fingerprint(
+            **base,
+            generation_provider="openai",
+            generation_model=OPENAI_MODEL,
+        )
+        self.assertNotEqual(gemini, openai)
+
+    def test_fingerprint_differs_across_all_live_providers(self) -> None:
+        base = dict(
+            retrieval_method="hybrid",
+            retrieval_fingerprint="retrieval",
+            context_k=5,
+        )
+        fingerprints = {
+            qa_fingerprint(
+                **base,
+                generation_provider=provider,
+                generation_model=model,
+            )
+            for provider, model in (
+                ("deepseek", DEEPSEEK_MODEL),
+                ("gemini", GEMINI_MODEL),
+                ("openai", OPENAI_MODEL),
+            )
+        }
+        self.assertEqual(len(fingerprints), 3)
 
 
 class OpenAIProviderOfflineTests(unittest.TestCase):

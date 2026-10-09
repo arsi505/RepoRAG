@@ -31,6 +31,8 @@ def answer_question(
     context_k: int = 5,
     dry_run: bool = False,
     config: QAConfig = DEFAULT_QA_CONFIG,
+    generation_provider: str | None = None,
+    generation_model: str | None = None,
 ) -> QAResult:
     if not question.strip():
         raise ValueError("Question must not be empty")
@@ -40,6 +42,8 @@ def answer_question(
         retrieval_fingerprint=retriever.fingerprint(retrieval_method),
         context_k=context_k,
         config=config,
+        generation_provider=generation_provider,
+        generation_model=generation_model,
     )
     total_started = perf_counter()
     retrieval_started = perf_counter()

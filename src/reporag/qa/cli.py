@@ -8,12 +8,20 @@ import sys
 from pathlib import Path
 
 from reporag.embeddings.index import IndexErrorBase, load_index as load_vector
+from reporag.generation.deepseek_provider import DeepSeekProvider
+from reporag.generation.environment import load_local_environment
 from reporag.generation.fake import FakeGenerator
+from reporag.generation.gemini_provider import GeminiProvider
 from reporag.generation.openai_provider import OpenAIResponsesProvider
 from reporag.lexical.index import BM25IndexError, load_index as load_bm25
 from reporag.retrieval.hybrid import HybridCompatibilityError
 
-from .config import DEFAULT_QA_CONFIG, SUPPORTED_METHODS
+from .config import (
+    DEFAULT_QA_CONFIG,
+    SUPPORTED_METHODS,
+    SUPPORTED_PROVIDERS,
+    model_for_provider,
+)
 from .models import Evidence, QAResult
 from .retrieval import RepositoryRetriever
 from .service import QAServiceError, answer_question
@@ -28,10 +36,35 @@ def build_parser() -> argparse.ArgumentParser:
         "--method", choices=sorted(SUPPORTED_METHODS), default="hybrid"
     )
     parser.add_argument("--context-k", type=int, default=5)
+    parser.add_argument(
+        "--provider", choices=sorted(SUPPORTED_PROVIDERS), default="deepseek"
+    )
     parser.add_argument("--model-cache", type=Path, default=Path("data/model_cache"))
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--show-context", action="store_true")
     return parser
+
+
+def create_generator(provider: str, *, dry_run: bool):
+    if dry_run:
+        return FakeGenerator()
+    model = model_for_provider(provider)
+    if provider == "deepseek":
+        return DeepSeekProvider(
+            model=model,
+            max_output_tokens=DEFAULT_QA_CONFIG.max_output_tokens,
+        )
+    if provider == "gemini":
+        return GeminiProvider(
+            model=model,
+            max_output_tokens=DEFAULT_QA_CONFIG.max_output_tokens,
+        )
+    if provider == "openai":
+        return OpenAIResponsesProvider(
+            model=model,
+            max_output_tokens=DEFAULT_QA_CONFIG.max_output_tokens,
+        )
+    raise ValueError(f"Unsupported generation provider: {provider}")
 
 
 def _symbol(item: Evidence) -> str:
@@ -53,19 +86,14 @@ def _print_sources(result: QAResult) -> None:
 def main(arguments: list[str] | None = None) -> int:
     options = build_parser().parse_args(arguments)
     try:
+        load_local_environment()
         vector = load_vector(options.vector_index)
         bm25 = load_bm25(options.bm25_index)
         retriever = RepositoryRetriever(
             vector, bm25, model_cache=options.model_cache
         )
-        generator = (
-            FakeGenerator()
-            if options.dry_run
-            else OpenAIResponsesProvider(
-                model=DEFAULT_QA_CONFIG.generation_model,
-                max_output_tokens=DEFAULT_QA_CONFIG.max_output_tokens,
-            )
-        )
+        generation_model = model_for_provider(options.provider)
+        generator = create_generator(options.provider, dry_run=options.dry_run)
         result = answer_question(
             options.question,
             retriever,
@@ -73,6 +101,8 @@ def main(arguments: list[str] | None = None) -> int:
             retrieval_method=options.method,
             context_k=options.context_k,
             dry_run=options.dry_run,
+            generation_provider=options.provider,
+            generation_model=generation_model,
         )
     except (
         IndexErrorBase,

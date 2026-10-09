@@ -13,10 +13,27 @@ PROMPT_VERSION = "reporag-qa-prompt-v1"
 CONTEXT_FORMATTER_VERSION = "reporag-qa-context-v1"
 DEFAULT_RETRIEVAL_METHOD = "hybrid"
 DEFAULT_CONTEXT_K = 5
-GENERATION_PROVIDER = "openai"
-GENERATION_MODEL = "gpt-5.4-mini-2026-03-17"
+DEFAULT_GENERATION_PROVIDER = "deepseek"
+DEEPSEEK_MODEL = "deepseek-flash"
+GEMINI_MODEL = "gemini-3.8-flash"
+OPENAI_MODEL = "gpt-5.4-mini-2026-03-17"
+GENERATION_PROVIDER = DEFAULT_GENERATION_PROVIDER
+GENERATION_MODEL = DEEPSEEK_MODEL
 MAX_OUTPUT_TOKENS = 1200
 SUPPORTED_METHODS = frozenset({"vector", "bm25", "hybrid", "reranked"})
+SUPPORTED_PROVIDERS = frozenset({"deepseek", "gemini", "openai"})
+PROVIDER_MODELS = {
+    "deepseek": DEEPSEEK_MODEL,
+    "gemini": GEMINI_MODEL,
+    "openai": OPENAI_MODEL,
+}
+
+
+def model_for_provider(provider: str) -> str:
+    try:
+        return PROVIDER_MODELS[provider]
+    except KeyError as exc:
+        raise ValueError(f"Unsupported generation provider: {provider}") from exc
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,6 +54,10 @@ class QAConfig:
             raise ValueError("default context_k must be positive")
         if self.max_output_tokens <= 0:
             raise ValueError("max_output_tokens must be positive")
+        if self.generation_provider not in SUPPORTED_PROVIDERS:
+            raise ValueError("Unsupported default generation provider")
+        if not self.generation_model:
+            raise ValueError("generation_model must not be empty")
 
     def validate_request(self, method: str, context_k: int) -> None:
         if method not in SUPPORTED_METHODS:
@@ -57,8 +78,20 @@ def qa_fingerprint(
     retrieval_fingerprint: str,
     context_k: int,
     config: QAConfig = DEFAULT_QA_CONFIG,
+    generation_provider: str | None = None,
+    generation_model: str | None = None,
 ) -> str:
     config.validate_request(retrieval_method, context_k)
+    provider = generation_provider or config.generation_provider
+    if provider not in SUPPORTED_PROVIDERS:
+        raise ValueError(f"Unsupported generation provider: {provider}")
+    model = generation_model or (
+        config.generation_model
+        if provider == config.generation_provider
+        else model_for_provider(provider)
+    )
+    if not model:
+        raise ValueError("generation_model must not be empty")
     payload = [
         config.qa_version,
         config.prompt_version,
@@ -66,8 +99,8 @@ def qa_fingerprint(
         retrieval_method,
         retrieval_fingerprint,
         context_k,
-        config.generation_provider,
-        config.generation_model,
+        provider,
+        model,
         config.max_output_tokens,
     ]
     return hashlib.sha256(

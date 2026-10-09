@@ -5,9 +5,11 @@ description = "Repository-aware retrieval research toolkit"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "google-genai==2.29.0",
     "huggingface-hub==0.36.2",
     "numpy==2.5.3",
     "openai==3.26.1",
+    "python-dotenv==1.2.4",
     "sentence-transformers==5.7.0",
     "torch==2.14.1",
     "tree-sitter==0.25.2",

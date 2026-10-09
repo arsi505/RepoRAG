@@ -9,9 +9,11 @@ Day 8 adds a single-turn product and demonstration layer over RepoRAG's frozen r
 - Context formatter: `reporag-qa-context-v1`
 - Default retrieval method: `hybrid`
 - Default context depth: `context_k = 5`
-- Provider: `openai`
-- Model snapshot: `gpt-5.4-mini-2026-03-17`
+- Default provider: `deepseek`
+- Default model: `deepseek-flash`
+- Alternative provider/models: `gemini` / `gemini-3.8-flash`; `openai` / `gpt-5.4-mini-2026-03-17`
 - Maximum output: 1,200 tokens
+- Google Gen AI SDK: `google-genai==2.29.0`
 - OpenAI SDK: `openai==3.26.1`
 
 Hybrid is the interactive default because it is substantially faster than CPU reranking and combines the existing semantic and lexical rankings. This is a practical product default, not a claim that Hybrid is scientifically superior.
@@ -28,13 +30,17 @@ After generation, RepoRAG extracts markers matching `[S1]`, `[S2]`, and so on. R
 
 If retrieval returns no evidence, generation is not called and RepoRAG returns `No repository evidence was retrieved for this question.`
 
-## OpenAI provider and security
+## Generation providers and security
 
-The provider uses the official Responses API through `openai==3.26.1`, with `instructions`, `input`, `max_output_tokens=1200`, `tools=[]`, and `store=False`. It exposes `response.output_text`, response identity, returned model, usage, and generation latency. No web search, file search, code interpreter, MCP, or other tool is enabled.
+DeepSeek is the recommended practical default. Its provider uses the existing `openai==3.26.1` SDK with the Responses API at `https://api.deepseek.com`, the `deepseek-flash` model, shared grounding instructions, unchanged question-plus-evidence input, `max_output_tokens=1200`, `tools=[]`, and `store=False`.
 
-The provider reads `OPENAI_API_KEY` only when a live generation call is required. Keys are never logged, persisted, or returned in result objects. `.env` remains gitignored; `.env.example` contains only an empty variable declaration.
+Gemini remains supported with `--provider gemini`. Its provider uses the official `google-genai==2.29.0` SDK and `models.generate_content`, with the same system instruction, user content, and output limit. The model is `gemini-3.8-flash`.
 
-The SDK is configured for a 60-second timeout and its bounded two retries. RepoRAG adds no custom retry loop. Authentication, timeout, rate-limit, connection, API, and empty-response failures become concise CLI errors; it never silently falls back to fake generation.
+OpenAI remains supported with `--provider openai`. Its provider uses the official Responses API through `openai==3.26.1`, with `instructions`, `input`, `max_output_tokens=1200`, `tools=[]`, and `store=False`. All providers expose text, provider/model identity, response identity when available, usage when returned, and generation latency. No provider enables web search, URL retrieval, external retrieval, code execution, function calling, browsing, or other tools.
+
+Providers read `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, or `OPENAI_API_KEY` only when a live generation call is required. For local CLI use, `python-dotenv==1.2.4` loads the gitignored `.env` without overriding environment variables already set by the process. Keys are never logged, persisted, or returned in result objects. `.env.example` contains empty placeholders only; API keys must never be committed.
+
+Authentication, timeout, rate-limit, connection, provider, and empty-response failures become concise CLI errors; RepoRAG never silently falls back to fake generation. The OpenAI SDK retains its 60-second timeout and bounded two retries. RepoRAG adds no custom retry loop.
 
 ## Dry run
 
@@ -51,19 +57,20 @@ $env:PYTHONPATH = "$PWD\src"
 
 `--show-context` prints the exact context for a live request as well. Questions, prompts, and answers are not persisted by default.
 
-For live generation, set `OPENAI_API_KEY` in the process environment and omit `--dry-run`:
+For live DeepSeek generation, place `DEEPSEEK_API_KEY` in `.env` or set it in the process environment, then omit `--dry-run`:
 
 ```powershell
-$env:OPENAI_API_KEY = "..."
 .venv\Scripts\python.exe -m reporag.qa.cli `
   data\embeddings\realtimecollab `
   data\bm25\realtimecollab `
   "Where is JWT authentication enforced?" `
-  --method hybrid --context-k 5
+  --provider deepseek --method hybrid --context-k 5
 ```
+
+Choose Gemini with `--provider gemini` and `GEMINI_API_KEY`, or OpenAI with `--provider openai` and `OPENAI_API_KEY`. The provider defaults to `deepseek` when the option is omitted.
 
 ## Fingerprint and limitations
 
-The deterministic Q&A configuration fingerprint covers Q&A, prompt, and context-format versions; selected retrieval method and its frozen fingerprint; `context_k`; provider; model snapshot; and maximum output tokens. It excludes questions, answers, response IDs, timestamps, API keys, hardware, and machine paths.
+The deterministic Q&A configuration fingerprint covers Q&A, prompt, and context-format versions; selected retrieval method and its frozen fingerprint; `context_k`; selected provider; selected model snapshot; and maximum output tokens. Switching among DeepSeek, Gemini, and OpenAI therefore changes the fingerprint. It excludes questions, answers, response IDs, timestamps, API keys, hardware, and machine paths.
 
 Answers are limited by the selected retrieval method and context depth. Citation validation proves that markers name supplied sources, not that every claim is semantically supported. Documentation remains valid frozen corpus content. Context is not compressed, so large chunks consume model input. Version 1 is single-turn and has no conversation memory, external tools, frontend, benchmark, ground truth, or evaluation metrics.
