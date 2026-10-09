@@ -8,7 +8,7 @@ from reporag.generation.protocol import GenerationError, GeneratorProvider
 
 from .citations import validate_citations
 from .config import DEFAULT_QA_CONFIG, QAConfig, qa_fingerprint
-from .context import build_evidence, format_context
+from .context import build_evidence, filter_by_evidence_scope, format_context
 from .models import QAResult, QATimings
 from .prompts import GROUNDING_INSTRUCTIONS, build_user_input
 from .retrieval import QARetriever
@@ -47,11 +47,17 @@ def answer_question(
     )
     total_started = perf_counter()
     retrieval_started = perf_counter()
-    results = retriever.retrieve(question, retrieval_method, context_k)
+    candidate_k = (
+        context_k
+        if config.evidence_scope == "all"
+        else max(50, context_k * 10)
+    )
+    results = retriever.retrieve(question, retrieval_method, candidate_k)
     retrieval_seconds = perf_counter() - retrieval_started
 
     context_started = perf_counter()
-    evidence = build_evidence(results, context_k=context_k)
+    scoped_results = filter_by_evidence_scope(results, config.evidence_scope)
+    evidence = build_evidence(scoped_results, context_k=context_k)
     context_text = format_context(evidence)
     user_input = build_user_input(question, context_text) if evidence else ""
     context_seconds = perf_counter() - context_started
@@ -63,6 +69,7 @@ def answer_question(
             answer_text=EMPTY_RETRIEVAL_ANSWER,
             retrieval_method=retrieval_method,
             context_k=context_k,
+            evidence_scope=config.evidence_scope,
             cited_source_ids=(),
             unknown_source_ids=(),
             citations_valid=False,
@@ -81,6 +88,7 @@ def answer_question(
             answer_text=DRY_RUN_ANSWER,
             retrieval_method=retrieval_method,
             context_k=context_k,
+            evidence_scope=config.evidence_scope,
             cited_source_ids=(),
             unknown_source_ids=(),
             citations_valid=False,
@@ -109,6 +117,7 @@ def answer_question(
         answer_text=generation.text,
         retrieval_method=retrieval_method,
         context_k=context_k,
+        evidence_scope=config.evidence_scope,
         cited_source_ids=validation.cited_source_ids,
         unknown_source_ids=validation.unknown_source_ids,
         citations_valid=validation.citations_valid,

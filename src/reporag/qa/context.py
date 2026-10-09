@@ -8,6 +8,28 @@ from typing import Any, Sequence
 from .models import Evidence
 
 
+def filter_by_evidence_scope(
+    results: Sequence[Any], evidence_scope: str
+) -> tuple[Any, ...]:
+    """Filter ranked results without changing their original order."""
+
+    if evidence_scope == "all":
+        return tuple(results)
+    if evidence_scope not in {"code", "docs"}:
+        raise ValueError(f"Unsupported evidence scope: {evidence_scope}")
+
+    filtered: list[Any] = []
+    for result in results:
+        path = PurePosixPath(result.file_path)
+        is_documentation = (
+            str(result.language).casefold() == "markdown"
+            or path.suffix.casefold() == ".md"
+        )
+        if (evidence_scope == "docs") == is_documentation:
+            filtered.append(result)
+    return tuple(filtered)
+
+
 def build_evidence(results: Sequence[Any], *, context_k: int) -> tuple[Evidence, ...]:
     if context_k <= 0:
         raise ValueError("context_k must be positive")

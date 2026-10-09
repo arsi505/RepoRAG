@@ -13,6 +13,7 @@ PROMPT_VERSION = "reporag-qa-prompt-v1"
 CONTEXT_FORMATTER_VERSION = "reporag-qa-context-v1"
 DEFAULT_RETRIEVAL_METHOD = "hybrid"
 DEFAULT_CONTEXT_K = 5
+DEFAULT_EVIDENCE_SCOPE = "all"
 DEFAULT_GENERATION_PROVIDER = "deepseek"
 DEEPSEEK_MODEL = "deepseek-flash"
 GEMINI_MODEL = "gemini-3.8-flash"
@@ -21,6 +22,7 @@ GENERATION_PROVIDER = DEFAULT_GENERATION_PROVIDER
 GENERATION_MODEL = DEEPSEEK_MODEL
 MAX_OUTPUT_TOKENS = 2000
 SUPPORTED_METHODS = frozenset({"vector", "bm25", "hybrid", "reranked"})
+SUPPORTED_EVIDENCE_SCOPES = frozenset({"all", "code", "docs"})
 SUPPORTED_PROVIDERS = frozenset({"deepseek", "gemini", "openai"})
 PROVIDER_MODELS = {
     "deepseek": DEEPSEEK_MODEL,
@@ -43,6 +45,7 @@ class QAConfig:
     context_formatter_version: str = CONTEXT_FORMATTER_VERSION
     default_retrieval_method: str = DEFAULT_RETRIEVAL_METHOD
     default_context_k: int = DEFAULT_CONTEXT_K
+    evidence_scope: str = DEFAULT_EVIDENCE_SCOPE
     generation_provider: str = GENERATION_PROVIDER
     generation_model: str = GENERATION_MODEL
     max_output_tokens: int = MAX_OUTPUT_TOKENS
@@ -52,6 +55,8 @@ class QAConfig:
             raise ValueError("Unsupported default retrieval method")
         if self.default_context_k <= 0:
             raise ValueError("default context_k must be positive")
+        if self.evidence_scope not in SUPPORTED_EVIDENCE_SCOPES:
+            raise ValueError("Unsupported evidence scope")
         if self.max_output_tokens <= 0:
             raise ValueError("max_output_tokens must be positive")
         if self.generation_provider not in SUPPORTED_PROVIDERS:
@@ -99,6 +104,7 @@ def qa_fingerprint(
         retrieval_method,
         retrieval_fingerprint,
         context_k,
+        config.evidence_scope,
         provider,
         model,
         config.max_output_tokens,

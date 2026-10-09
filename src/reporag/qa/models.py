@@ -44,6 +44,7 @@ class QAResult:
     answer_text: str
     retrieval_method: str
     context_k: int
+    evidence_scope: str
     cited_source_ids: tuple[str, ...]
     unknown_source_ids: tuple[str, ...]
     citations_valid: bool

@@ -9,6 +9,7 @@ Day 8 adds a single-turn product and demonstration layer over RepoRAG's frozen r
 - Context formatter: `reporag-qa-context-v1`
 - Default retrieval method: `hybrid`
 - Default context depth: `context_k = 5`
+- Default evidence scope: `all`
 - Default provider: `deepseek`
 - Default model: `deepseek-flash`
 - Alternative provider/models: `gemini` / `gemini-3.8-flash`; `openai` / `gpt-5.4-mini-2026-03-17`
@@ -22,7 +23,9 @@ Users may select `vector`, `bm25`, `hybrid`, or `reranked`. The original questio
 
 ## Evidence and prompting
 
-Retrieval order is preserved. After deterministic duplicate removal, evidence receives IDs `S1`, `S2`, and so on. Each block contains the repository-relative path, language, chunk type, symbol and parent, line range, retrieval rank, and exact frozen chunk content. Absolute local paths, timestamps, retrieval scores, secrets, and model-cache details are excluded.
+Retrieval order is preserved. The Q&A product layer supports `--evidence-scope all`, `code`, or `docs`. `all` retains the current behavior. For `code` and `docs`, Q&A requests a deterministic candidate pool of `max(50, context_k * 10)`, preserves its ranking, filters Markdown documentation from or into the context as requested, and takes the first `context_k` matches. It never falls back between scopes. This filtering does not change Methods A-D.
+
+After scope filtering and deterministic duplicate removal, evidence receives IDs `S1`, `S2`, and so on. Each block contains the repository-relative path, language, chunk type, symbol and parent, line range, retrieval rank, and exact frozen chunk content. Absolute local paths, timestamps, retrieval scores, secrets, and model-cache details are excluded.
 
 The provider receives one instruction template and one user input containing the exact question and source blocks. Instructions require repository-only answers, inline `[S1]` citations, cautious inference, and an explicit insufficient-evidence response rather than guessing.
 
@@ -52,7 +55,7 @@ $env:PYTHONPATH = "$PWD\src"
   data\embeddings\realtimecollab `
   data\bm25\realtimecollab `
   "Where is a realtime client connection handled?" `
-  --method hybrid --context-k 5 --dry-run
+  --method hybrid --context-k 5 --evidence-scope code --dry-run
 ```
 
 `--show-context` prints the exact context for a live request as well. Questions, prompts, and answers are not persisted by default.
@@ -71,6 +74,6 @@ Choose Gemini with `--provider gemini` and `GEMINI_API_KEY`, or OpenAI with `--p
 
 ## Fingerprint and limitations
 
-The deterministic Q&A configuration fingerprint covers Q&A, prompt, and context-format versions; selected retrieval method and its frozen fingerprint; `context_k`; selected provider; selected model snapshot; and maximum output tokens. Switching among DeepSeek, Gemini, and OpenAI therefore changes the fingerprint. It excludes questions, answers, response IDs, timestamps, API keys, hardware, and machine paths.
+The deterministic Q&A configuration fingerprint covers Q&A, prompt, and context-format versions; selected retrieval method and its frozen fingerprint; `context_k`; evidence scope; selected provider; selected model snapshot; and maximum output tokens. Switching scope or generation provider therefore changes the fingerprint. It excludes questions, answers, response IDs, timestamps, API keys, hardware, and machine paths.
 
 Answers are limited by the selected retrieval method and context depth. Citation validation proves that markers name supplied sources, not that every claim is semantically supported. Documentation remains valid frozen corpus content. Context is not compressed, so large chunks consume model input. Version 1 is single-turn and has no conversation memory, external tools, frontend, benchmark, ground truth, or evaluation metrics.

@@ -19,6 +19,7 @@ from reporag.retrieval.hybrid import HybridCompatibilityError
 
 from .config import (
     DEFAULT_QA_CONFIG,
+    SUPPORTED_EVIDENCE_SCOPES,
     SUPPORTED_METHODS,
     SUPPORTED_PROVIDERS,
     model_for_provider,
@@ -45,6 +46,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--method", choices=sorted(SUPPORTED_METHODS), default="hybrid"
     )
     parser.add_argument("--context-k", type=int, default=5)
+    parser.add_argument(
+        "--evidence-scope",
+        choices=sorted(SUPPORTED_EVIDENCE_SCOPES),
+        default=DEFAULT_QA_CONFIG.evidence_scope,
+    )
     parser.add_argument(
         "--provider", choices=sorted(SUPPORTED_PROVIDERS), default="deepseek"
     )
@@ -116,6 +122,7 @@ def main(arguments: list[str] | None = None) -> int:
         qa_config = replace(
             DEFAULT_QA_CONFIG,
             max_output_tokens=options.max_output_tokens,
+            evidence_scope=options.evidence_scope,
         )
         generation_model = model_for_provider(options.provider)
         generator = create_generator(
@@ -149,6 +156,7 @@ def main(arguments: list[str] | None = None) -> int:
     print()
     _print_sources(result)
     print(f"Retrieval method: {result.retrieval_method}")
+    print(f"Evidence scope: {result.evidence_scope}")
     print(f"Context chunks: {len(result.evidence)}")
     print(f"Citations valid: {result.citations_valid}")
     if result.unknown_source_ids:

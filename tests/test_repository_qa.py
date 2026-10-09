@@ -17,7 +17,8 @@ from reporag.qa.config import (
     QAConfig,
     qa_fingerprint,
 )
-from reporag.qa.context import build_evidence, format_context
+from reporag.qa.cli import build_parser
+from reporag.qa.context import build_evidence, filter_by_evidence_scope, format_context
 from reporag.qa.prompts import GROUNDING_INSTRUCTIONS, PROMPT_VERSION, build_user_input
 from reporag.qa.service import (
     EMPTY_RETRIEVAL_ANSWER,
@@ -27,14 +28,20 @@ from reporag.qa.service import (
 from reporag.retrieval.models import SearchResult
 
 
-def result(chunk_id: str, rank: int, *, path: str | None = None) -> SearchResult:
+def result(
+    chunk_id: str,
+    rank: int,
+    *,
+    path: str | None = None,
+    language: str = "Python",
+) -> SearchResult:
     return SearchResult(
         rank=rank,
         chunk_id=chunk_id,
         score=1.0 / rank,
         repository="ExampleRepo",
         file_path=path or f"src/{chunk_id}.py",
-        language="Python",
+        language=language,
         chunk_type="method",
         symbol_name=f"method_{chunk_id}",
         parent_symbol="Service",
@@ -58,6 +65,20 @@ class FakeRetriever:
 
 
 class QAContextTests(unittest.TestCase):
+    def test_evidence_scope_filters_without_reordering(self) -> None:
+        values = (
+            result("doc-1", 1, path="README.md", language="Markdown"),
+            result("code-1", 2),
+            result("doc-2", 3, path="docs/design.md", language="Markdown"),
+            result("code-2", 4, path="tests/test_service.py"),
+        )
+        code = filter_by_evidence_scope(values, "code")
+        docs = filter_by_evidence_scope(values, "docs")
+        self.assertEqual([item.chunk_id for item in code], ["code-1", "code-2"])
+        self.assertEqual([item.rank for item in code], [2, 4])
+        self.assertEqual([item.chunk_id for item in docs], ["doc-1", "doc-2"])
+        self.assertEqual([item.rank for item in docs], [1, 3])
+
     def test_ranks_map_to_source_ids_in_retrieval_order(self) -> None:
         evidence = build_evidence((result("a", 1), result("b", 2), result("c", 3)), context_k=3)
         self.assertEqual([item.source_id for item in evidence], ["S1", "S2", "S3"])
@@ -160,6 +181,65 @@ class QAServiceTests(unittest.TestCase):
         )
         self.assertEqual(retriever.calls, [(question, "bm25", 3)])
 
+    def test_code_scope_overretrieves_and_surfaces_code_below_top_five(self) -> None:
+        docs = tuple(
+            result(f"doc-{rank}", rank, path=f"docs/{rank}.md", language="Markdown")
+            for rank in range(1, 6)
+        )
+        code = tuple(result(f"code-{rank}", rank) for rank in range(6, 11))
+        retriever = FakeRetriever(docs + code)
+        output = answer_question(
+            "question",
+            retriever,
+            FakeGenerator("Answer [S1]."),
+            config=replace(DEFAULT_QA_CONFIG, evidence_scope="code"),
+        )
+        self.assertEqual(retriever.calls, [("question", "hybrid", 50)])
+        self.assertEqual(
+            [item.chunk_id for item in output.evidence],
+            ["code-6", "code-7", "code-8", "code-9", "code-10"],
+        )
+        self.assertEqual([item.retrieval_rank for item in output.evidence], [6, 7, 8, 9, 10])
+
+    def test_docs_scope_excludes_code_and_handles_fewer_than_context_k(self) -> None:
+        values = (
+            result("code-1", 1),
+            result("doc-2", 2, path="README.md", language="Markdown"),
+            result("code-3", 3),
+            result("doc-4", 4, path="docs/guide.md", language="Markdown"),
+        )
+        output = answer_question(
+            "question",
+            FakeRetriever(values),
+            FakeGenerator("Answer [S1]."),
+            config=replace(DEFAULT_QA_CONFIG, evidence_scope="docs"),
+        )
+        self.assertEqual([item.chunk_id for item in output.evidence], ["doc-2", "doc-4"])
+
+    def test_scope_never_falls_back_when_no_chunks_match(self) -> None:
+        docs = (
+            result("doc", 1, path="README.md", language="Markdown"),
+        )
+        generator = FakeGenerator("must not run")
+        output = answer_question(
+            "question",
+            FakeRetriever(docs),
+            generator,
+            config=replace(DEFAULT_QA_CONFIG, evidence_scope="code"),
+        )
+        self.assertEqual(output.answer_text, EMPTY_RETRIEVAL_ANSWER)
+        self.assertEqual(output.evidence, ())
+        self.assertEqual(generator.calls, [])
+
+    def test_all_scope_preserves_existing_retrieval_behavior(self) -> None:
+        retriever = FakeRetriever(self.values)
+        output = answer_question(
+            "question", retriever, FakeGenerator("Answer [S1].")
+        )
+        self.assertEqual(retriever.calls, [("question", "hybrid", 5)])
+        self.assertEqual([item.chunk_id for item in output.evidence], ["1", "2", "3", "4", "5"])
+        self.assertEqual(output.evidence_scope, "all")
+
     def test_evidence_is_passed_to_generator_and_answer_returned(self) -> None:
         generator = FakeGenerator("Generated answer [S1].")
         output = answer_question("question", FakeRetriever(self.values), generator)
@@ -242,6 +322,7 @@ class QAConfigFingerprintTests(unittest.TestCase):
         self.assertEqual(DEFAULT_QA_CONFIG.qa_version, "reporag-qa-v1")
         self.assertEqual(DEFAULT_QA_CONFIG.default_retrieval_method, "hybrid")
         self.assertEqual(DEFAULT_QA_CONFIG.default_context_k, 5)
+        self.assertEqual(DEFAULT_QA_CONFIG.evidence_scope, "all")
         self.assertEqual(DEFAULT_QA_CONFIG.generation_provider, "deepseek")
         self.assertEqual(DEFAULT_QA_CONFIG.generation_model, DEEPSEEK_MODEL)
         self.assertEqual(DEFAULT_QA_CONFIG.max_output_tokens, 2000)
@@ -261,9 +342,18 @@ class QAConfigFingerprintTests(unittest.TestCase):
             replace(DEFAULT_QA_CONFIG, prompt_version="prompt-v2"),
             replace(DEFAULT_QA_CONFIG, context_formatter_version="context-v2"),
             replace(DEFAULT_QA_CONFIG, max_output_tokens=600),
+            replace(DEFAULT_QA_CONFIG, evidence_scope="code"),
         )
         for config in configs:
             self.assertNotEqual(original, qa_fingerprint(**base, config=config))
+
+    def test_cli_parses_evidence_scope(self) -> None:
+        defaults = build_parser().parse_args(["vector", "bm25", "question"])
+        scoped = build_parser().parse_args(
+            ["vector", "bm25", "question", "--evidence-scope", "docs"]
+        )
+        self.assertEqual(defaults.evidence_scope, "all")
+        self.assertEqual(scoped.evidence_scope, "docs")
 
     def test_fingerprint_changes_between_gemini_and_openai(self) -> None:
         base = dict(
