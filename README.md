@@ -26,9 +26,9 @@ RepoRAG is a repository-aware retrieval-augmented generation research project fo
 
 ## Status
 
-**Day 7 — Hybrid RRF plus cross-encoder reranking implemented**
+**Day 8 — Grounded repository Q&A implemented**
 
-The research design and Day 3 chunk dataset remain frozen. Method A provides exact cosine vector search, Method B provides deterministic BM25 lexical search, Method C fuses their complete rankings with RRF, and Method D reranks the fixed Hybrid top 50 using the pinned BGE cross-encoder. LLM answer generation and evaluation remain future work.
+The research design and Day 3 chunk dataset remain frozen. Methods A–D remain retrieval-only research baselines. Day 8 adds a separate single-turn demonstration layer that supplies retrieved repository evidence to a generator and validates `[S1]`-style citations. Empirical evaluation remains future work.
 
 ## Day 2 / Development
 
@@ -127,3 +127,18 @@ $env:PYTHONPATH = "$PWD\src"
 ```
 
 The first pinned-revision download may be enabled explicitly with `--allow-download`. Method D uses raw cross-encoder logits, `candidate_k=50`, `max_length=1024`, deterministic batching, and full retrieval provenance. See [Cross-Encoder Reranking](docs/RERANKING.md).
+
+## Day 8 / Repository Q&A
+
+Inspect the default Hybrid context without an API request:
+
+```powershell
+$env:PYTHONPATH = "$PWD\src"
+.venv\Scripts\python.exe -m reporag.qa.cli `
+  data\embeddings\realtimecollab `
+  data\bm25\realtimecollab `
+  "Where is a realtime client connection handled?" `
+  --method hybrid --context-k 5 --dry-run
+```
+
+For live generation, set `OPENAI_API_KEY` in the environment and omit `--dry-run`. Available methods are `vector`, `bm25`, `hybrid`, and `reranked`; Hybrid is only the practical interactive default, not a research conclusion. The provider uses the pinned `gpt-5.4-mini-2026-03-17` snapshot without web search or external tools. See [Repository Question Answering](docs/REPOSITORY_QA.md).
