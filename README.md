@@ -164,3 +164,25 @@ $env:PYTHONPATH = "$PWD\src"
 ```
 
 See [RepoRAG Local API](docs/API.md) for request and response fields, supported options, pre-indexing requirements, and safe error behavior.
+
+## UI
+
+RepoRAG includes a local Next.js interface in `frontend/`. It talks only to the loopback FastAPI service; repositories must currently be indexed before they are selected, and provider API keys remain in the root backend `.env` file rather than the browser environment.
+
+Start the backend in one PowerShell terminal:
+
+```powershell
+cd D:\Masters-Projects\RepoRAG
+.\.venv\Scripts\Activate.ps1
+uvicorn reporag.api.app:app --reload --host 127.0.0.1 --port 8000
+```
+
+Start the frontend in another:
+
+```powershell
+cd D:\Masters-Projects\RepoRAG\frontend
+npm install
+npm run dev
+```
+
+Then open `http://localhost:3000`. Copy `frontend/.env.example` to `frontend/.env.local` only when the API URL needs to be changed; never place provider credentials in a `NEXT_PUBLIC_*` variable.
