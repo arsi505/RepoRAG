@@ -26,9 +26,9 @@ RepoRAG is a repository-aware retrieval-augmented generation research project fo
 
 ## Status
 
-**Day 3 — Code-aware parsing and chunking implemented**
+**Day 4 — Vector-only retrieval implemented**
 
-The research design remains frozen. Repository ingestion and deterministic code-aware chunk generation are implemented; retrieval implementation is not included.
+The research design and Day 3 chunk dataset remain frozen. Method A now provides local code embeddings, transparent persistent indexes, and exact cosine-similarity search. BM25, hybrid retrieval, reranking, LLM answer generation, and evaluation remain future work.
 
 ## Day 2 / Development
 
@@ -69,3 +69,19 @@ python -m reporag.chunking.cli "D:\path\to\repository"
 The first use of a structural language may download its grammar into the ignored `data/tree_sitter_cache/` directory. Runtime chunks are written to `data/chunks/<repository>.jsonl`.
 
 See [Code-Aware Chunking](docs/CHUNKING.md) for supported languages, metadata, fallback behavior, stable IDs, and limitations.
+
+## Day 4 / Vector Retrieval
+
+Install the pinned dependencies into an isolated environment, then build and search an index:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\python -m pip install -e .
+$env:PYTHONPATH = "$PWD\src"
+.venv\Scripts\python -m reporag.embeddings.cli build "D:\path\to\repository"
+.venv\Scripts\python -m reporag.retrieval.cli data\embeddings\repository "Where is realtime connection handling implemented?" --top-k 5
+```
+
+Add `--show-content` to the search command to print exact chunk source. Generated model and index artifacts remain local and gitignored. See [Vector Retrieval](docs/VECTOR_RETRIEVAL.md) for the frozen model revision, input template, normalization, persistence, stale-index validation, and limitations.
+
+The model was trained at a sequence length of 512 and uses its documented ALiBi-based support for an explicit 8,192-token inference maximum. Index metadata reports pre-truncation token lengths and any documents exceeding that limit.

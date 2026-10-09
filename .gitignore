@@ -50,6 +50,9 @@ models/downloaded/
 .sentence_transformers/
 data/repository_cache/
 data/tree_sitter_cache/
+data/model_cache/
+data/embeddings/*
+!data/embeddings/.gitkeep
 
 # Local ingestion manifests contain machine paths and runtime timestamps.
 data/manifests/*.json
