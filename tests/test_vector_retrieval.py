@@ -20,7 +20,11 @@ from reporag.embeddings.index import (
     load_index,
     save_index,
 )
-from reporag.embeddings.model import normalize_rows
+from reporag.embeddings.model import (
+    SentenceTransformerEmbeddingModel,
+    _adaptive_batch_indices,
+    normalize_rows,
+)
 from reporag.retrieval.vector import VectorSearchError, search
 
 
@@ -74,6 +78,20 @@ class FakeEmbeddingModel:
         return tuple(len(text.split()) for text in texts)
 
 
+class RecordingSentenceEncoder:
+    def __init__(self) -> None:
+        self.batches = []
+
+    def encode(self, values, **_kwargs):
+        self.batches.append(tuple(values))
+        rows = {
+            "long": [1.0, 0.0, 0.0],
+            "short": [0.0, 1.0, 0.0],
+            "medium": [0.0, 0.0, 1.0],
+        }
+        return np.asarray([rows[value] for value in values], dtype=np.float32)
+
+
 class VectorRetrievalTests(unittest.TestCase):
     def setUp(self) -> None:
         test_root = Path.cwd() / ".test_tmp"
@@ -117,6 +135,37 @@ class VectorRetrievalTests(unittest.TestCase):
     def test_normalize_rows(self) -> None:
         matrix = normalize_rows(np.asarray([[3.0, 4.0, 0.0]], dtype=np.float32))
         self.assertTrue(np.allclose(np.linalg.norm(matrix, axis=1), 1.0))
+
+    def test_adaptive_batches_bound_long_inputs_and_cover_every_index(self) -> None:
+        batches = _adaptive_batch_indices(
+            (3000, 20, 1000, 10),
+            preferred_batch_size=16,
+            max_sequence_length=8192,
+        )
+        self.assertEqual(batches[0], (0,))
+        self.assertEqual(sorted(index for batch in batches for index in batch), [0, 1, 2, 3])
+        self.assertTrue(all(len(batch) <= 16 for batch in batches))
+
+    def test_adaptive_encoding_restores_original_document_order(self) -> None:
+        model = SentenceTransformerEmbeddingModel.__new__(
+            SentenceTransformerEmbeddingModel
+        )
+        model._config = CONFIG
+        model._batch_size = 16
+        model._show_progress = False
+        model._model = RecordingSentenceEncoder()
+        model.token_lengths = lambda texts: tuple(
+            {"long": 3000, "short": 10, "medium": 1000}[text] for text in texts
+        )
+
+        encoded = model.encode_documents(("long", "short", "medium"))
+        repeated = model.encode_documents(("long", "short", "medium"))
+
+        self.assertEqual(encoded.shape, (3, CONFIG.embedding_dimension))
+        self.assertTrue(np.array_equal(encoded, np.eye(3, dtype=np.float32)))
+        self.assertTrue(np.array_equal(repeated, encoded))
+        self.assertEqual(model.config, CONFIG)
+        self.assertEqual(model._model.batches[0], ("long",))
 
     def test_matrix_rows_align_with_chunk_ids(self) -> None:
         index = build_index(self.chunks, self.model)

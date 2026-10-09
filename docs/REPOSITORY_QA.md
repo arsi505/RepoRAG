@@ -12,7 +12,7 @@ Day 8 adds a single-turn product and demonstration layer over RepoRAG's frozen r
 - Default provider: `deepseek`
 - Default model: `deepseek-flash`
 - Alternative provider/models: `gemini` / `gemini-3.8-flash`; `openai` / `gpt-5.4-mini-2026-03-17`
-- Maximum output: 1,200 tokens
+- Default maximum output: 2,000 tokens (configurable with `--max-output-tokens`)
 - Google Gen AI SDK: `google-genai==2.29.0`
 - OpenAI SDK: `openai==3.26.1`
 
@@ -32,11 +32,11 @@ If retrieval returns no evidence, generation is not called and RepoRAG returns `
 
 ## Generation providers and security
 
-DeepSeek is the recommended practical default. Its provider uses the existing `openai==3.26.1` SDK with the Responses API at `https://api.deepseek.com`, the `deepseek-flash` model, shared grounding instructions, unchanged question-plus-evidence input, `max_output_tokens=1200`, `tools=[]`, and `store=False`.
+DeepSeek is the recommended practical default. Its provider uses the existing `openai==3.26.1` SDK with the Responses API at `https://api.deepseek.com`, the `deepseek-flash` model, shared grounding instructions, unchanged question-plus-evidence input, `max_output_tokens=2000` by default, `tools=[]`, and `store=False`.
 
 Gemini remains supported with `--provider gemini`. Its provider uses the official `google-genai==2.29.0` SDK and `models.generate_content`, with the same system instruction, user content, and output limit. The model is `gemini-3.8-flash`.
 
-OpenAI remains supported with `--provider openai`. Its provider uses the official Responses API through `openai==3.26.1`, with `instructions`, `input`, `max_output_tokens=1200`, `tools=[]`, and `store=False`. All providers expose text, provider/model identity, response identity when available, usage when returned, and generation latency. No provider enables web search, URL retrieval, external retrieval, code execution, function calling, browsing, or other tools.
+OpenAI remains supported with `--provider openai`. Its provider uses the official Responses API through `openai==3.26.1`, with `instructions`, `input`, the shared configurable output limit, `tools=[]`, and `store=False`. All providers expose text, provider/model identity, response identity when available, usage when returned, and generation latency. No provider enables web search, URL retrieval, external retrieval, code execution, function calling, browsing, or other tools.
 
 Providers read `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, or `OPENAI_API_KEY` only when a live generation call is required. For local CLI use, `python-dotenv==1.2.4` loads the gitignored `.env` without overriding environment variables already set by the process. Keys are never logged, persisted, or returned in result objects. `.env.example` contains empty placeholders only; API keys must never be committed.
 
@@ -64,7 +64,7 @@ For live DeepSeek generation, place `DEEPSEEK_API_KEY` in `.env` or set it in th
   data\embeddings\realtimecollab `
   data\bm25\realtimecollab `
   "Where is JWT authentication enforced?" `
-  --provider deepseek --method hybrid --context-k 5
+  --provider deepseek --method hybrid --context-k 5 --max-output-tokens 2000
 ```
 
 Choose Gemini with `--provider gemini` and `GEMINI_API_KEY`, or OpenAI with `--provider openai` and `OPENAI_API_KEY`. The provider defaults to `deepseek` when the option is omitted.

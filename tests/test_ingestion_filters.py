@@ -29,7 +29,14 @@ class IngestionFilterTests(unittest.TestCase):
         self.assertFalse(appears_binary(b"plain UTF-8 text"))
 
     def test_excluded_directories_are_recognized(self) -> None:
-        for directory in ("node_modules", ".git", "build", ".venv", ".test_tmp"):
+        for directory in (
+            "node_modules",
+            ".git",
+            "build",
+            ".venv",
+            ".test_tmp",
+            ".tmp-doc-screenshot-profile",
+        ):
             with self.subTest(directory=directory):
                 self.assertTrue(is_excluded_directory(Path(directory)))
         self.assertTrue(is_excluded_directory(Path("data/manifests")))

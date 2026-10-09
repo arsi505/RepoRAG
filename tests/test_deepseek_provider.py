@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import os
+import sys
 import unittest
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from reporag.generation.deepseek_provider import (
     DEEPSEEK_BASE_URL,
@@ -13,7 +14,7 @@ from reporag.generation.fake import FakeGenerator
 from reporag.generation.gemini_provider import GeminiProvider
 from reporag.generation.openai_provider import OpenAIResponsesProvider
 from reporag.generation.protocol import GenerationError
-from reporag.qa.cli import build_parser, create_generator
+from reporag.qa.cli import _configure_utf8_output, build_parser, create_generator
 from reporag.qa.config import DEEPSEEK_MODEL
 from reporag.qa.prompts import GROUNDING_INSTRUCTIONS, build_user_input
 
@@ -67,7 +68,7 @@ class DeepSeekProviderOfflineTests(unittest.TestCase):
     def test_default_model_and_output_limit(self) -> None:
         provider = DeepSeekProvider(client_factory=RecordingFactory())
         self.assertEqual(provider.model, "deepseek-flash")
-        self.assertEqual(provider.max_output_tokens, 1200)
+        self.assertEqual(provider.max_output_tokens, 2000)
 
     def test_client_uses_required_base_url(self) -> None:
         factory = RecordingFactory()
@@ -102,7 +103,7 @@ class DeepSeekProviderOfflineTests(unittest.TestCase):
         incomplete.incomplete_details = SimpleNamespace(reason="max_output_tokens")
         for response, expected in (
             (Response(text="  "), "empty text response"),
-            (incomplete, "incomplete.*max_output_tokens"),
+            (incomplete, "configured output-token limit.*--max-output-tokens"),
         ):
             factory = RecordingFactory(RecordingResponses(response))
             with self.subTest(expected=expected):
@@ -134,12 +135,34 @@ class DeepSeekProviderOfflineTests(unittest.TestCase):
     def test_provider_selection_keeps_all_providers_and_fake(self) -> None:
         options = build_parser().parse_args(["vector", "bm25", "question"])
         self.assertEqual(options.provider, "deepseek")
-        self.assertIsInstance(create_generator("deepseek", dry_run=False), DeepSeekProvider)
-        self.assertIsInstance(create_generator("gemini", dry_run=False), GeminiProvider)
-        self.assertIsInstance(
-            create_generator("openai", dry_run=False), OpenAIResponsesProvider
-        )
+        self.assertEqual(options.max_output_tokens, 2000)
+        for provider_name, provider_type in (
+            ("deepseek", DeepSeekProvider),
+            ("gemini", GeminiProvider),
+            ("openai", OpenAIResponsesProvider),
+        ):
+            provider = create_generator(
+                provider_name,
+                dry_run=False,
+                max_output_tokens=2400,
+            )
+            self.assertIsInstance(provider, provider_type)
+            self.assertEqual(provider.max_output_tokens, 2400)
         self.assertIsInstance(create_generator("deepseek", dry_run=True), FakeGenerator)
+
+    def test_cli_output_limit_override(self) -> None:
+        options = build_parser().parse_args(
+            ["vector", "bm25", "question", "--max-output-tokens", "2400"]
+        )
+        self.assertEqual(options.max_output_tokens, 2400)
+
+    def test_cli_configures_standard_streams_for_unicode_answers(self) -> None:
+        stdout = SimpleNamespace(reconfigure=Mock())
+        stderr = SimpleNamespace(reconfigure=Mock())
+        with patch.object(sys, "stdout", stdout), patch.object(sys, "stderr", stderr):
+            _configure_utf8_output()
+        stdout.reconfigure.assert_called_once_with(encoding="utf-8")
+        stderr.reconfigure.assert_called_once_with(encoding="utf-8")
 
 
 if __name__ == "__main__":

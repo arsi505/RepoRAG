@@ -244,7 +244,7 @@ class QAConfigFingerprintTests(unittest.TestCase):
         self.assertEqual(DEFAULT_QA_CONFIG.default_context_k, 5)
         self.assertEqual(DEFAULT_QA_CONFIG.generation_provider, "deepseek")
         self.assertEqual(DEFAULT_QA_CONFIG.generation_model, DEEPSEEK_MODEL)
-        self.assertEqual(DEFAULT_QA_CONFIG.max_output_tokens, 1200)
+        self.assertEqual(DEFAULT_QA_CONFIG.max_output_tokens, 2000)
 
     def test_fingerprint_is_stable_and_configuration_sensitive(self) -> None:
         base = dict(retrieval_method="hybrid", retrieval_fingerprint="retrieval", context_k=5)

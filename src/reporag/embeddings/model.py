@@ -14,6 +14,40 @@ from .config import DEFAULT_EMBEDDING_CONFIG, EmbeddingConfig
 
 
 FloatMatrix = NDArray[np.float32]
+_REFERENCE_BATCH_SEQUENCE_LENGTH = 512
+
+
+def _adaptive_batch_indices(
+    token_lengths: Sequence[int],
+    *,
+    preferred_batch_size: int,
+    max_sequence_length: int,
+) -> tuple[tuple[int, ...], ...]:
+    """Group longest inputs first while bounding quadratic attention memory."""
+
+    if preferred_batch_size <= 0:
+        raise ValueError("preferred_batch_size must be positive")
+    if max_sequence_length <= 0:
+        raise ValueError("max_sequence_length must be positive")
+    if any(length <= 0 for length in token_lengths):
+        raise ValueError("token lengths must be positive")
+
+    remaining = sorted(
+        range(len(token_lengths)),
+        key=lambda index: (-token_lengths[index], index),
+    )
+    attention_budget = (
+        preferred_batch_size * _REFERENCE_BATCH_SEQUENCE_LENGTH**2
+    )
+    batches: list[tuple[int, ...]] = []
+    position = 0
+    while position < len(remaining):
+        longest = min(token_lengths[remaining[position]], max_sequence_length)
+        safe_size = max(1, attention_budget // max(1, longest**2))
+        batch_size = min(preferred_batch_size, safe_size, len(remaining) - position)
+        batches.append(tuple(remaining[position : position + batch_size]))
+        position += batch_size
+    return tuple(batches)
 
 
 class EmbeddingModel(Protocol):
@@ -126,13 +160,25 @@ class SentenceTransformerEmbeddingModel:
         values = list(texts)
         if not values:
             return np.empty((0, self.config.embedding_dimension), dtype=np.float32)
-        encoded = self._model.encode(
-            values,
-            batch_size=self._batch_size,
-            convert_to_numpy=True,
-            normalize_embeddings=self.config.normalize_embeddings,
-            show_progress_bar=self._show_progress,
+        token_lengths = self.token_lengths(values)
+        batches = _adaptive_batch_indices(
+            token_lengths,
+            preferred_batch_size=self._batch_size,
+            max_sequence_length=self.config.max_sequence_length,
         )
+        encoded = np.empty(
+            (len(values), self.config.embedding_dimension), dtype=np.float32
+        )
+        for indices in batches:
+            batch = [values[index] for index in indices]
+            batch_matrix = self._model.encode(
+                batch,
+                batch_size=len(batch),
+                convert_to_numpy=True,
+                normalize_embeddings=self.config.normalize_embeddings,
+                show_progress_bar=False,
+            )
+            encoded[list(indices)] = np.asarray(batch_matrix, dtype=np.float32)
         return normalize_rows(encoded)
 
     def encode_documents(self, texts: Sequence[str]) -> FloatMatrix:

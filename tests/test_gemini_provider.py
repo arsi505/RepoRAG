@@ -95,7 +95,7 @@ class GeminiProviderOfflineTests(unittest.TestCase):
             GeminiProvider(client_factory=factory).generate("instructions", "input")
         config = factory.models.calls[0]["config"]
         self.assertIsNone(config.tools)
-        self.assertEqual(config.max_output_tokens, 1200)
+        self.assertEqual(config.max_output_tokens, 2000)
 
     def test_generated_text_metadata_and_usage_are_returned(self) -> None:
         factory = RecordingFactory()

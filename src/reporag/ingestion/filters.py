@@ -59,6 +59,7 @@ EXCLUDED_DIRECTORY_NAMES: frozenset[str] = frozenset(
         ".pytest_cache",
         ".ruff_cache",
         ".test_tmp",
+        ".tmp-doc-screenshot-profile",
         ".venv",
         ".vscode",
         "__pycache__",

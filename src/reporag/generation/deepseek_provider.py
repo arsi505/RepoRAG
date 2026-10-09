@@ -91,6 +91,11 @@ class DeepSeekProvider:
         status = getattr(response, "status", None)
         if status != "completed":
             reason = getattr(getattr(response, "incomplete_details", None), "reason", None)
+            if status == "incomplete" and reason == "max_output_tokens":
+                raise GenerationError(
+                    "Generation reached the configured output-token limit. "
+                    "Retry with a larger --max-output-tokens value."
+                )
             if status == "incomplete" and reason:
                 raise GenerationError(f"DeepSeek response was incomplete ({reason})")
             raise GenerationError(f"DeepSeek response did not complete (status={status})")
