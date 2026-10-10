@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 244 56" fill="none">
+  <defs>
+    <linearGradient id="surface" x1="7" y1="5" x2="42" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#122B51"/><stop offset=".52" stop-color="#0B1D37"/><stop offset="1" stop-color="#071426"/>
+    </linearGradient>
+    <linearGradient id="line" x1="14" y1="11" x2="37" y2="38" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8BE9FF"/><stop offset=".52" stop-color="#54A5FF"/><stop offset="1" stop-color="#8A7DFF"/>
+    </linearGradient>
+    <linearGradient id="word" x1="61" y1="15" x2="216" y2="46" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F5F9FF"/><stop offset=".7" stop-color="#DDEBFA"/><stop offset="1" stop-color="#A6C5E6"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(4 4)">
+    <rect x="3.5" y="3.5" width="41" height="41" rx="12.5" fill="url(#surface)" stroke="#73B9FF" stroke-opacity=".32"/>
+    <path d="M15 36V13H26.5C31.2 13 34 15.8 34 20.1C34 24.4 31.1 27.2 26.5 27.2H15M25.5 27.2L35.3 36" stroke="url(#line)" stroke-width="2.35" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="15" cy="13" r="2.35" fill="#A8F2FF"/><circle cx="34" cy="20" r="2.35" fill="#62B6FF"/><circle cx="25.5" cy="27.2" r="2.35" fill="#6599FF"/><circle cx="35.3" cy="36" r="2.35" fill="#9B8CFF"/>
+  </g>
+  <text x="64" y="37" fill="url(#word)" font-family="Segoe UI, Arial, sans-serif" font-size="29" font-weight="700" letter-spacing="-.8">RepoRAG</text>
+</svg>

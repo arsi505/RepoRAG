@@ -17,7 +17,7 @@ This is a local developer and research tool, not a hosted service. Its four retr
 
 ## Demo / Interface
 
-The interface keeps retrieval configuration beside the question workspace and makes each source citation inspectable down to its original content.
+The interface keeps retrieval configuration beside the question workspace, makes each source citation inspectable down to its original content, and adds a command palette, focus mode, and answer/source export utilities for practical repository analysis.
 
 <p align="center">
   <img src="docs/images/reporag-main.png" alt="Main RepoRAG interface" width="900">
@@ -113,6 +113,8 @@ The local web interface provides controls for:
 **All** permits both source and documentation, **Code** excludes Markdown documentation, and **Docs** keeps documentation evidence only. Scope filtering preserves the selected retrieval method's ranking and never silently falls back to another scope.
 
 Citation markers are clickable and move focus to the corresponding source card. Evidence content can be expanded without modification. Provider/model, retrieval configuration, citation status, generation latency, and token usage are shown when returned by the backend.
+
+Use **Ctrl/⌘ + K** to open workspace commands. Focus mode prioritizes the answer and evidence panels, while answer and source controls support copying exact generated or retrieved content and exporting the answer as Markdown.
 
 ## Technology Stack
 
